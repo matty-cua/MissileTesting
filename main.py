@@ -1,14 +1,28 @@
 # imports 
 # from tqdm import tqdm
-import pygame 
-import gymnasium as gym 
+
+# risky pygame import (used for rendering) 
+try: 
+    import pygame 
+    pg = True
+except: 
+    print("WARNING: COULD NOT IMPORT PYGAME. WILL NOT RENDER.")
+    pg = False
+
+# risky gym import 
+try: 
+    import gymnasium as gym 
+    gm = True
+except: 
+    print("WARNING: COULD NOT IMPORT GYMNASIUM. TRAINING AND CLASSES MAY FAIL")
+    gm = False; 
 
 # custom imports 
 from Tools import * 
 from MissileEnv import * 
 
 # define hyper parameters 
-epochs = 2
+epochs = 4
 
 # Initialize the environment 
 env = MissileEnv(); 

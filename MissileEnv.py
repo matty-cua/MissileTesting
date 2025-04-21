@@ -1,6 +1,16 @@
 import numpy as np 
-import gymnasium as gym
-import pygame 
+
+try: 
+    import gymnasium as gym
+    gm = True
+except: 
+    gm = False
+
+try: 
+    import pygame
+    pg = True  
+except: 
+    pg = False 
 
 import random 
 from dataclasses import dataclass 
@@ -8,8 +18,8 @@ from dataclasses import dataclass
 from Tools import * 
 from Missile import Missile
 
-class MissileEnv(gym.Env): 
-# class MissileEnv: 
+# class MissileEnv(_sub): 
+class MissileEnv: 
 
     def __init__(self): 
         # Gen variables 
@@ -91,7 +101,7 @@ class MissileEnv(gym.Env):
         return self.get_obs(), reward, terminated, truncated, self.get_info()
 
     def render(self): 
-        if not self.rendered: 
+        if not self.rendered and pg: 
             # Initialize pygame 
             pygame.init()
             self.window = pygame.display.set_mode(self.window_size)
@@ -102,7 +112,7 @@ class MissileEnv(gym.Env):
             # Report that we are initialized 
             self.rendered = True 
         
-        if self.running: 
+        if self.running and pg: 
             # Set up the canvas (for rgb rendering as well)
             canvas = pygame.Surface(self.window_size)
             canvas.fill((255, 255, 255)) 
@@ -124,7 +134,7 @@ class MissileEnv(gym.Env):
                 self.clock.tick(1/self.dt)
     
     def close(self): 
-        if self.rendered: 
+        if self.rendered and pg: 
             pygame.quit(); 
 
     def get_obs(self): 

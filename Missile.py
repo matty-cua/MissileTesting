@@ -54,10 +54,17 @@ class Missile:
             dd *= dm / self.clip_distance
 
         # Get observations 
-        angle = Vector.angle_between(self.velocity, dd)  # angle between our velocity and the target 
-        v_inline = Vector.projection(self.velocity, dd)
-        v_offline = Vector.off_axis(self.velocity, dd)
-        v_proj = Vector(v_inline, v_offline).unit()
+        vel_angle = self.velocity.angle()  # angle of velo vector (to world)
+        dd_angle = dd.angle()  # Angle of distance vector (to world)
+        angle = vel_angle - dd_angle  # Difference between angles 
+        # Wrap angle betweeen [-180, 180]
+        if angle > 180:  # Fix upper bounds 
+            angle = 360 - angle
+        if angle < -180:  # Fix lower bounds
+            angle = 360 + angle
+        v_inline = Vector.projection(self.velocity, dd)  # Velocity towards the target 
+        v_offline = Vector.off_axis(self.velocity, dd) * math.copysign(1, angle)  # Velocity away from the target 
+        v_proj = Vector(v_inline, v_offline).unit()  # velocity normalized to the target 
 
         # Pass to model 
         axis = self.model(np.array([dd.x, dd.y, v_proj.x, v_proj.y]))
@@ -66,6 +73,9 @@ class Missile:
         self.velocity = self.velocity.rotate(axis * dt * self.turn_speed)
 
     def model(self, inp): 
+        """
+        Here we run a model that uses the inputs from the turn_towards call to determine how much to turn 
+        """
         if inp[2] > 0: 
             out = -inp[3]
         else: 
