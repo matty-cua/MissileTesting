@@ -17,11 +17,16 @@ from dataclasses import dataclass
 
 from Tools import * 
 from Missile import Missile
+from PathGen import PathGenerator
 
 # class MissileEnv(_sub): 
 class MissileEnv: 
 
     def __init__(self): 
+        # Important behavior vars 
+        self.move_target = True
+        self.GP = PathGenerator()
+
         # Gen variables 
         self.dt = 1/30;  # Frame rate 
         self.bound_size = 100; 
@@ -57,9 +62,16 @@ class MissileEnv:
         # admin stuff 
         self.frames = 0
 
-        # Random target position, zero velocity 
-        self.target.velocity = Vector(0, 0)
-        self.target.position = Tools.random_unit() * self.bound_size
+        # Random target position, zero velocity
+        if not self.move_target:  
+            self.target.velocity = Vector(0, 0)
+            self.target.position = Tools.random_unit() * self.bound_size
+        else: 
+            self.target_x, self.target_y = self.GP.get_path(self.bound_size)
+            self.target.velocity = Vector(0, 0) 
+            self.target_i = 0
+            print(self.target_x.size)
+            self.target.position = Vector(self.target_x[self.target_i], self.target_y[self.target_i])
 
         # Random missile location, random velocity direction 
         self.missile.position = Tools.random_unit() * self.bound_size
@@ -72,7 +84,16 @@ class MissileEnv:
         truncated = False 
 
         # update target kinematics 
-        self.target.position = self.target.position + (self.target.velocity * self.dt)
+        if not self.move_target: 
+        #     self.target.position = self.target.position + (self.target.velocity * self.dt)
+        # else: 
+            self.target_i += 1
+            if self.target_i >= length(self.target_x): 
+                self.target_i = 0
+            i = self.target_i
+            nv = Vector(self.target_x[self.target_i], self.target_y[self.target_i])
+            self.target.velocity = (self.target.position - nv) / self.dt
+            self.target.position = nv 
 
         # Update the missile 
         self.missile.update(self.dt, self.target)

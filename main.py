@@ -1,6 +1,8 @@
 # imports 
 # from tqdm import tqdm
 
+from PathGen import PathGenerator
+
 # risky pygame import (used for rendering) 
 try: 
     import pygame 
@@ -20,6 +22,9 @@ except:
 # custom imports 
 from Tools import * 
 from MissileEnv import * 
+
+pathGen = PathGenerator()
+(px, py) = pathGen.get_path(100)
 
 # define hyper parameters 
 epochs = 4

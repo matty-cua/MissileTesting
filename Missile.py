@@ -63,11 +63,12 @@ class Missile:
         if angle < -180:  # Fix lower bounds
             angle = 360 + angle
         v_inline = Vector.projection(self.velocity, dd)  # Velocity towards the target 
-        v_offline = Vector.off_axis(self.velocity, dd) * math.copysign(1, angle)  # Velocity away from the target 
-        v_proj = Vector(v_inline, v_offline).unit()  # velocity normalized to the target 
+        v_offline = np.float64(Vector.off_axis(self.velocity, dd) * math.copysign(1, angle))  # Velocity away from the target 
+        v_proj = Vector(v_offline, v_inline).unit()  # velocity normalized to the target 
 
         # Pass to model 
-        axis = self.model(np.array([dd.x, dd.y, v_proj.x, v_proj.y]))
+        [print(type(_)) for _ in (dd.x[0], dd.y[0], v_proj.x, v_proj.y[0])]
+        axis = self.model(np.array([dd.x[0], dd.y[0], v_proj.x, v_proj.y[0]]))
 
         # rotate acording to output 
         self.velocity = self.velocity.rotate(axis * dt * self.turn_speed)
