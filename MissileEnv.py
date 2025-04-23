@@ -84,11 +84,11 @@ class MissileEnv:
         truncated = False 
 
         # update target kinematics 
-        if not self.move_target: 
+        if self.move_target: 
         #     self.target.position = self.target.position + (self.target.velocity * self.dt)
         # else: 
             self.target_i += 1
-            if self.target_i >= length(self.target_x): 
+            if self.target_i >= len(self.target_x): 
                 self.target_i = 0
             i = self.target_i
             nv = Vector(self.target_x[self.target_i], self.target_y[self.target_i])
