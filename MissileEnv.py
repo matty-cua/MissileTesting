@@ -146,6 +146,16 @@ class MissileEnv:
             end = start - (self.missile.velocity.unit() * self.missile_size)
             pygame.draw.line(canvas, self.missile_color, self.cam_pos(start), self.cam_pos(end), self.missile_width)
 
+            # Draw status bars 
+            obs = self.get_obs()
+            xcent = self.window_size[0]/2
+            xrange = 50
+            lw = 3
+            pygame.draw.line(canvas, 'red', (xcent, 5), (xcent + xrange*(obs['v_out']), 5), lw)
+            pygame.draw.line(canvas, 'green', (xcent, 10), (xcent + xrange*obs['v_in'], 10), lw)
+            pygame.draw.line(canvas, 'blue', (xcent, 15), (xcent + xrange*obs['x_dist'], 15), lw)
+            pygame.draw.line(canvas, 'purple', (xcent, 20), (xcent + xrange*obs['y_dist'], 20), lw)
+
             if self.render_mode == "human": 
                 self.window.blit(canvas, canvas.get_rect())  # draw the canvas to the window 
                 pygame.event.pump()  # Manage the event queue(?) might help with not handling inputs 
@@ -158,7 +168,14 @@ class MissileEnv:
 
     def get_obs(self): 
         # things that we want to directly track (optional)
-        return {"BRo": "plz"}
+        obs = self.missile.get_obs(self.target, self.dt)
+
+        return {
+            "x_dist": obs[0], 
+            'y_dist': obs[1], 
+            'v_in'  : obs[2], 
+            'v_out' : obs[3]
+        }
 
     def get_info(self): 
         # other interesting stats (optional)

@@ -1,5 +1,4 @@
 import numpy as np 
-import matplotlib.pyplot as plt 
 # import tensorflow as tf 
 
 import random 
@@ -74,6 +73,35 @@ class Missile:
 
         # rotate acording to output 
         self.velocity = self.velocity.rotate(axis * dt * self.turn_speed)
+
+    def get_obs(self, target, dt): 
+        # Get distance inputs 
+        dd = target.position - self.position  # distance vector 
+        dm = dd.magnitude()  # distance magnitude 
+
+        # Clip distance for better input to NN 
+        if dm > self.clip_distance: 
+            dd = dd.unit()
+        else: 
+            dd /= self.clip_distance
+
+        # Get observations 
+        vel_angle = self.velocity.angle()  # angle of velo vector (to world)
+        dd_angle = dd.angle()  # Angle of distance vector (to world)
+        angle = vel_angle - dd_angle  # Difference between angles 
+        # Wrap angle betweeen [-180, 180]
+        if angle > 180:  # Fix upper bounds 
+            angle = 360 - angle
+        if angle < -180:  # Fix lower bounds
+            angle = 360 + angle
+        v_inline = Vector.projection(self.velocity, dd)  # Velocity towards the target 
+        v_offline = np.float64(Vector.off_axis(self.velocity, dd) * math.copysign(1, angle))  # Velocity away from the target 
+        v_proj = Vector(v_inline, v_offline).unit()  # velocity normalized to the target 
+
+        # Pass to model 
+        # [print(type(_)) for _ in (dd.x[0], dd.y[0], v_proj.x, v_proj.y[0])]
+        # axis = self.model(np.array([dd.x[0], dd.y[0], v_proj.x, v_proj.y[0]]))
+        return np.array([dd.x, dd.y, v_proj.x, v_proj.y])
 
     def model(self, inp): 
         """
