@@ -26,7 +26,7 @@ class MissileEnv:
         # Important behavior vars 
         self.move_target = True
         self.GP = PathGenerator()
-        self.training_length_frames = 200
+        self.training_length_frames = 10*30
 
         # Gen variables 
         self.dt = 1/30;  # Frame rate 

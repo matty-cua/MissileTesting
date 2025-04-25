@@ -28,7 +28,7 @@ pathGen = PathGenerator()
 (px, py) = pathGen.get_path(100)
 
 # define hyper parameters 
-epochs = 1
+epochs = 3
 
 # Initialize the environment 
 env = MissileEnv(); 
