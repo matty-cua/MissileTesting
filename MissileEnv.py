@@ -26,6 +26,7 @@ class MissileEnv:
         # Important behavior vars 
         self.move_target = True
         self.GP = PathGenerator()
+        self.training_length_frames = 200
 
         # Gen variables 
         self.dt = 1/30;  # Frame rate 
@@ -70,7 +71,6 @@ class MissileEnv:
             self.target_x, self.target_y = self.GP.get_path(self.bound_size)
             self.target.velocity = Vector(0, 0) 
             self.target_i = 0
-            print(self.target_x.size)
             self.target.position = Vector(self.target_x[self.target_i], self.target_y[self.target_i])
 
         # Random missile location, random velocity direction 
@@ -85,8 +85,6 @@ class MissileEnv:
 
         # update target kinematics 
         if self.move_target: 
-        #     self.target.position = self.target.position + (self.target.velocity * self.dt)
-        # else: 
             self.target_i += 1
             if self.target_i >= len(self.target_x): 
                 self.target_i = 0
@@ -99,7 +97,7 @@ class MissileEnv:
         self.missile.update(self.dt, self.target)
 
         # Check for finishing clause 
-        if Vector.distance(self.missile.position, self.target.position) < 5: 
+        if Vector.distance(self.missile.position, self.target.position) < self.target_size: 
             reward = 10; 
             terminated = True; 
         else: 
@@ -111,7 +109,7 @@ class MissileEnv:
 
         # check for truncation 
         self.frames += 1; 
-        if self.frames > 100: 
+        if self.frames > self.training_length_frames: 
             truncated = True
 
         # Manage pygame 

@@ -17,6 +17,27 @@ class Tools:
         x = (position.x + screen_size[0])/2
         y = (position.y + screen_size[1])/2
         return Vector(x, y)
+    
+class Debug: 
+
+    enable_log = True
+    enable_warn = True 
+    enable_error = True 
+
+    @staticmethod
+    def log(s): 
+        if Debug.enable_log: 
+            print(s)
+
+    @staticmethod 
+    def warn(s): 
+        if Debug.enable_warn: 
+            print(s)
+
+    @staticmethod
+    def error(s): 
+        if Debug.enable_error: 
+            print(s)
 
 
 class Vector: 

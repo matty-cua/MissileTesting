@@ -7,7 +7,7 @@ class PathGenerator:
     def __init__(self): 
 
         # misc self items 
-        self.N = 200; 
+        self.N = 1000; 
         self.inpx = np.expand_dims(np.linspace(0, 2*np.pi, self.N), 1)
         # Theta inputs 
         self.Nth = 5
@@ -29,7 +29,7 @@ class PathGenerator:
             # theta += a * np.sin(i * self.inpx)
             theta = theta + (1 * np.sin(i * self.inpx))
 
-        print((theta + (np.sin(i * self.inpx))).size)
+        # print((theta + (np.sin(i * self.inpx))).size)
 
         # finalize theta 
         theta = theta * np.sign(np.random.rand(1)-.5)  # Randomly flip the direction

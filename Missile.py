@@ -1,4 +1,5 @@
 import numpy as np 
+import matplotlib.pyplot as plt 
 # import tensorflow as tf 
 
 import random 
@@ -17,7 +18,7 @@ class Missile:
         # self.model = None  # Model to train 
 
         # behaviors 
-        self.speed = 100; 
+        self.speed = 200; 
         self.turn_speed = 1 * math.pi  # rads/second
         self.clip_distance = 100  # clip dd vector to be unit vector outside of this distance 
 
@@ -86,9 +87,9 @@ class Missile:
             else: 
                 out = -1
         
-        print(f"in : {inp[2]}")
-        print(f"off: {inp[3]}")
-        print(f"out: {out}")
+        # print(f"in : {inp[2]}")
+        # print(f"off: {inp[3]}")
+        # print(f"out: {out}")
         return(out)
 
     def backprop(self, reward): 
