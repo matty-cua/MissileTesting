@@ -41,6 +41,7 @@ class MissileEnv:
         self.missile = Missile()
 
         # Manage pygame 
+        self.follow_missile = True  # Center rocket on the frame (instead of (0, 0))
         self.rendered = False  # if we have initiaized the pygame window 
         self.running = False  # Unsure if this is necessary either, most likely pauses things? 
         self.window_size = (400, 400) 
@@ -151,10 +152,11 @@ class MissileEnv:
             xcent = self.window_size[0]/2
             xrange = 50
             lw = 3
-            pygame.draw.line(canvas, 'red', (xcent, 5), (xcent + xrange*(obs['v_out']), 5), lw)
-            pygame.draw.line(canvas, 'green', (xcent, 10), (xcent + xrange*obs['v_in'], 10), lw)
-            pygame.draw.line(canvas, 'blue', (xcent, 15), (xcent + xrange*obs['x_dist'], 15), lw)
-            pygame.draw.line(canvas, 'purple', (xcent, 20), (xcent + xrange*obs['y_dist'], 20), lw)
+            pygame.draw.line(canvas, 'green', (xcent, 5), (xcent + xrange*(obs['v_in']), 5), lw)
+            pygame.draw.line(canvas, 'red', (xcent, 10), (xcent + xrange*obs['v_out'], 10), lw)
+            pygame.draw.line(canvas, 'blue', (xcent, 15), (xcent + xrange*obs['d_in'], 15), lw)
+            pygame.draw.line(canvas, 'purple', (xcent, 20), (xcent + xrange*obs['d_out'], 20), lw)
+            pygame.draw.line(canvas, 'orange', (xcent, 25), (xcent + xrange*obs['d_mag'], 25), lw)
 
             if self.render_mode == "human": 
                 self.window.blit(canvas, canvas.get_rect())  # draw the canvas to the window 
@@ -171,10 +173,11 @@ class MissileEnv:
         obs = self.missile.get_obs(self.target, self.dt)
 
         return {
-            "x_dist": obs[0], 
-            'y_dist': obs[1], 
+            "d_in": obs[0], 
+            'd_out': obs[1], 
             'v_in'  : obs[2], 
-            'v_out' : obs[3]
+            'v_out' : obs[3], 
+            'd_mag' : obs[4]
         }
 
     def get_info(self): 
@@ -183,7 +186,10 @@ class MissileEnv:
     
     # Helpers 
     def cam_pos(self, p): 
-        return Tools.get_cam_pos(self.window_size, p).as_tuple()
+        if self.follow_missile: 
+            return Tools.get_cam_pos(self.window_size, p-self.missile.position).as_tuple()
+        else: 
+            return Tools.get_cam_pos(self.window_size, p).as_tuple()
 
 @dataclass 
 class Target: 

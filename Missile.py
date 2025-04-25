@@ -17,9 +17,9 @@ class Missile:
         # self.model = None  # Model to train 
 
         # behaviors 
-        self.speed = 200; 
+        self.speed = 300; 
         self.turn_speed = 1 * math.pi  # rads/second
-        self.clip_distance = 100  # clip dd vector to be unit vector outside of this distance 
+        self.clip_distance = 200  # clip dd vector to be unit vector outside of this distance 
 
     def reset(self): 
         # Should reset the model here (if it is stateful)
@@ -85,23 +85,31 @@ class Missile:
         else: 
             dd /= self.clip_distance
 
+        # relative velocity 
+        dv = self.velocity - target.velocity 
+
         # Get observations 
         vel_angle = self.velocity.angle()  # angle of velo vector (to world)
         dd_angle = dd.angle()  # Angle of distance vector (to world)
         angle = vel_angle - dd_angle  # Difference between angles 
+
         # Wrap angle betweeen [-180, 180]
         if angle > 180:  # Fix upper bounds 
             angle = 360 - angle
         if angle < -180:  # Fix lower bounds
             angle = 360 + angle
-        v_inline = Vector.projection(self.velocity, dd)  # Velocity towards the target 
-        v_offline = np.float64(Vector.off_axis(self.velocity, dd) * math.copysign(1, angle))  # Velocity away from the target 
+
+        v_inline = Vector.projection(dv, dd)  # Velocity towards the target 
+        v_offline = np.float64(Vector.off_axis(dv, dd) * math.copysign(1, angle))  # Velocity away from the target 
         v_proj = Vector(v_inline, v_offline).unit()  # velocity normalized to the target 
 
-        # Pass to model 
-        # [print(type(_)) for _ in (dd.x[0], dd.y[0], v_proj.x, v_proj.y[0])]
-        # axis = self.model(np.array([dd.x[0], dd.y[0], v_proj.x, v_proj.y[0]]))
-        return np.array([dd.x, dd.y, v_proj.x, v_proj.y])
+        # Get distance relative to velocity (the nose) 
+        d_inline = Vector.projection(dd, self.velocity)
+        d_offline = np.float64(Vector.off_axis(dd, self.velocity) * math.copysign(1, angle))
+        d_proj = Vector(d_inline, d_offline).unit()
+        d_mag = dd.magnitude()
+
+        return np.array([d_proj.x, d_proj.y, v_proj.x, v_proj.y, d_mag])    
 
     def model(self, inp): 
         """
