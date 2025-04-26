@@ -1,16 +1,7 @@
 import numpy as np 
 
-try: 
-    import gymnasium as gym
-    gm = True
-except: 
-    gm = False
-
-try: 
-    import pygame
-    pg = True  
-except: 
-    pg = False 
+import gymnasium as gym
+import pygame
 
 import random 
 from dataclasses import dataclass 
@@ -19,8 +10,11 @@ from Tools import *
 from Missile import Missile
 from PathGen import PathGenerator
 
-# class MissileEnv(_sub): 
-class MissileEnv: 
+pg = True 
+gm = True
+
+class MissileEnv(gym.Env): 
+# class MissileEnv: 
 
     def __init__(self): 
         # Important behavior vars 

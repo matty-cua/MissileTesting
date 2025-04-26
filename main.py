@@ -4,25 +4,18 @@ import matplotlib.pyplot as plt
 
 from PathGen import PathGenerator
 
-# risky pygame import (used for rendering) 
-try: 
-    import pygame 
-    pg = True
-except: 
-    print("WARNING: COULD NOT IMPORT PYGAME. WILL NOT RENDER.")
-    pg = False
 
-# risky gym import 
-try: 
-    import gymnasium as gym 
-    gm = True
-except: 
-    print("WARNING: COULD NOT IMPORT GYMNASIUM. TRAINING AND CLASSES MAY FAIL")
-    gm = False; 
+import pygame 
+import gymnasium as gym 
 
 # custom imports 
 from Tools import * 
 from MissileEnv import * 
+
+use_tf = False 
+if use_tf: 
+    print("importing tensorflow...")
+    import tensorflow as tf 
 
 pathGen = PathGenerator()
 (px, py) = pathGen.get_path(100)
