@@ -289,7 +289,8 @@ if __name__ == '__main__':
     # Save the training stats (just episode duration for now, should figure out better loss plots like reward and such)
     torch.save(
         {
-            'durations': episode_durations
+            'durations': episode_durations, 
+            'rewards': average_rewards, 
         }, 
         save_loc / 'ModelStats', 
     )

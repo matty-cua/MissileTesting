@@ -18,7 +18,7 @@ class MissileEnv(gym.Env):
 
     def __init__(self): 
         # Important behavior vars 
-        self.move_target = True
+        self.move_target = False
         self.GP = PathGenerator()
         self.training_length_frames = 5*30
 
@@ -37,6 +37,7 @@ class MissileEnv(gym.Env):
 
         # Missile variables 
         self.missile = Missile()
+        self.action = None
 
         # Manage pygame 
         self.follow_missile = True  # Center rocket on the frame (instead of (0, 0))
@@ -98,6 +99,7 @@ class MissileEnv(gym.Env):
         da = (self.action_size-1)/2
         act_in = (action-da)/da 
         self.missile.update(self.dt, self.target, action=act_in)
+        self.action = act_in
 
         # get observations 
         obs = self.get_obs()
@@ -117,6 +119,7 @@ class MissileEnv(gym.Env):
         # Manage pygame 
         if self.render_mode == "human": 
             self.render()
+            print(f"env action: {self.action}")
 
         # return the goods 
         return obs, reward, terminated, truncated, self.get_info()
@@ -151,6 +154,7 @@ class MissileEnv(gym.Env):
             # Draw status bars 
             obs = self.get_obs(as_dict=True)
             xcent = self.window_size[0]/2
+            yws = self.window_size[1]
             xrange = 50
             lw = 3
             pygame.draw.line(canvas, 'green', (xcent, 5), (xcent + xrange*(obs['v_in']), 5), lw)
@@ -158,6 +162,12 @@ class MissileEnv(gym.Env):
             pygame.draw.line(canvas, 'blue', (xcent, 15), (xcent + xrange*obs['d_in'], 15), lw)
             pygame.draw.line(canvas, 'purple', (xcent, 20), (xcent + xrange*obs['d_out'], 20), lw)
             pygame.draw.line(canvas, 'orange', (xcent, 25), (xcent + xrange*obs['d_mag'], 25), lw)
+
+            # Draw rocket turning GUI 
+            pygame.draw.line(canvas, 'black', (xcent-xrange, yws-5), (xcent-xrange, yws-15), lw)
+            pygame.draw.line(canvas, 'black', (xcent+xrange, yws-5), (xcent+xrange, yws-15), lw)
+            pygame.draw.line(canvas, 'black', (xcent, yws-5), (xcent, yws-15), lw)
+            pygame.draw.line(canvas, 'red', (xcent, self.window_size[1]-10), (xcent + xrange*self.action, self.window_size[1]-10), lw)
 
             if self.render_mode == "human": 
                 self.window.blit(canvas, canvas.get_rect())  # draw the canvas to the window 
