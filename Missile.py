@@ -29,15 +29,15 @@ class Missile:
         # self.position = Tools.random_unit()
         # self.velocity = Tools.random_unit * self.speed
 
-    def update(self, dt, target, reward=None): 
+    def update(self, dt, target, action=None, reward=None): 
         # Turning 
-        self.turn_towards(target, dt)
+        if action is None: 
+            self.turn_towards(target, dt)
+        else: 
+            self.velocity = self.velocity.rotate(action * dt * self.turn_speed)
 
         # Kinematics 
         self.position += self.velocity * dt
-        # print("Pos: " + str(self.position))
-        # print("Vel: " + str(self.velocity / dt))
-        # print("Spd: " + str(self.velocity.magnitude() / dt)) 
 
         if reward is not None: 
             self.backprop(reward)

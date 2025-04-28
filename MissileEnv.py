@@ -20,7 +20,11 @@ class MissileEnv(gym.Env):
         # Important behavior vars 
         self.move_target = True
         self.GP = PathGenerator()
-        self.training_length_frames = 10*30
+        self.training_length_frames = 5*30
+
+        # Gym built in vars 
+        self.action_size = 5
+        self.action_space = gym.spaces.Discrete(self.action_size)
 
         # Gen variables 
         self.dt = 1/30;  # Frame rate 
@@ -73,6 +77,8 @@ class MissileEnv(gym.Env):
         self.missile.velocity = Tools.random_unit() * self.missile.speed 
         self.missile.reset()
 
+        return self.get_obs(), self.get_info()
+
     def step(self, action=None): 
         # Basic inits 
         terminated = False 
@@ -89,18 +95,19 @@ class MissileEnv(gym.Env):
             self.target.position = nv 
 
         # Update the missile 
-        self.missile.update(self.dt, self.target)
+        da = (self.action_size-1)/2
+        act_in = (action-da)/da 
+        self.missile.update(self.dt, self.target, action=act_in)
 
-        # Check for finishing clause 
+        # get observations 
+        obs = self.get_obs()
+
+        # Check for finishing clause and calc reward 
         if Vector.distance(self.missile.position, self.target.position) < self.target_size: 
             reward = 10; 
             terminated = True; 
         else: 
-            reward = 0; 
-
-        # Update missile model 
-        if self.training: 
-            self.missile.backprop(reward)
+            reward = obs[2]; 
 
         # check for truncation 
         self.frames += 1; 
@@ -112,7 +119,7 @@ class MissileEnv(gym.Env):
             self.render()
 
         # return the goods 
-        return self.get_obs(), reward, terminated, truncated, self.get_info()
+        return obs, reward, terminated, truncated, self.get_info()
 
     def render(self): 
         if not self.rendered and pg: 
@@ -142,7 +149,7 @@ class MissileEnv(gym.Env):
             pygame.draw.line(canvas, self.missile_color, self.cam_pos(start), self.cam_pos(end), self.missile_width)
 
             # Draw status bars 
-            obs = self.get_obs()
+            obs = self.get_obs(as_dict=True)
             xcent = self.window_size[0]/2
             xrange = 50
             lw = 3
@@ -162,17 +169,20 @@ class MissileEnv(gym.Env):
         if self.rendered and pg: 
             pygame.quit(); 
 
-    def get_obs(self): 
+    def get_obs(self, as_dict=False): 
         # things that we want to directly track (optional)
         obs = self.missile.get_obs(self.target, self.dt)
 
-        return {
-            "d_in": obs[0], 
-            'd_out': obs[1], 
-            'v_in'  : obs[2], 
-            'v_out' : obs[3], 
-            'd_mag' : obs[4]
-        }
+        if as_dict: 
+            return {
+                "d_in": obs[0], 
+                'd_out': obs[1], 
+                'v_in'  : obs[2], 
+                'v_out' : obs[3], 
+                'd_mag' : obs[4]
+            }
+        else: 
+            return obs
 
     def get_info(self): 
         # other interesting stats (optional)

@@ -63,7 +63,7 @@ class PathGenerator:
         # r = np.linspace(0, 1, num=self.N)
         r = np.squeeze(r) 
 
-        print(theta.shape)
+        # print(theta.shape)
 
         # Randomize theta 
         for i in range(self.Nth): 
@@ -71,20 +71,20 @@ class PathGenerator:
             # theta += a * np.sin(i * self.inpx)
             theta = theta + (a * np.sin(i * self.inpx))
 
-        print((theta + (np.sin(i * self.inpx))).shape)
+        # print((theta + (np.sin(i * self.inpx))).shape)
 
         # finalize theta 
         theta = theta * np.sign(np.random.rand(1)-.5)  # Randomly flip the sign 
         theta = theta[:-1]  # Cut off the last place
 
-        print(f"R shape pre {r.shape}")
+        # print(f"R shape pre {r.shape}")
 
         # Randomize radius 
         for i in range(self.Nr): 
             a = (np.random.rand(1)-.5) * self.dr
             r = r + (a * np.squeeze(np.sin(i*self.inpx)))
             
-        print(f"R shape post {r.shape}")
+        # print(f"R shape post {r.shape}")
 
         # Finalize radius
         r = r[:-1]
