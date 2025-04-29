@@ -18,7 +18,7 @@ class MissileEnv(gym.Env):
 
     def __init__(self): 
         # Important behavior vars 
-        self.move_target = False
+        self.move_target = True
         self.GP = PathGenerator()
         self.training_length_frames = 3*30
 
@@ -114,7 +114,7 @@ class MissileEnv(gym.Env):
             reward = 10; 
             terminated = True; 
         else: 
-            reward = -3 * (obs[3]**2);  
+            reward = .05 * (obs[2] - .5*np.abs(obs[3]))
             # reward = -1 
 
         # check for truncation 

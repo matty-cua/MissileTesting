@@ -125,7 +125,14 @@ class Vector:
     @staticmethod
     def off_axis(a, b): 
         proj = Vector.projection(a, b)
+        if proj > a.magnitude():  # Can happen due to machine precision errors 
+            return 0
         return math.sqrt(a.magnitude()**2 - proj**2)
+    
+    @staticmethod
+    def to_axis(a, b): 
+        bu = b.unit()  # unit vector of the direction 
+        inline = projection()
 
 
 

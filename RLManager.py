@@ -20,7 +20,14 @@ import torch.nn.functional as F
 print("Custom imports...")
 from MissileEnv import MissileEnv
 
+# Added due to issues w/ conda env + matplotlib 
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 print("Finished imports.")
+
+# Used to disable error prone features between environments 
+use_plots = False 
 
 # Psuedo enum (pytorch tutorial) 
 Transition = namedtuple('Transition',
@@ -238,7 +245,7 @@ n_observations = 5
 if torch.cuda.is_available() or torch.backends.mps.is_available():
     num_episodes = 800
 else:
-    num_episodes = 50
+    num_episodes = 800
 
 # Body of the program 
 if __name__ == '__main__': 
@@ -304,7 +311,7 @@ if __name__ == '__main__':
 
             if done:
                 episode_durations.append(t + 1)
-                average_rewards.append(reward_total.cpu().numpy()[0] / t + 1)
+                average_rewards.append(reward_total.cpu().numpy()[0])
                 cep = eps_threshold = EPS_END + (EPS_START - EPS_END) * \
                     math.exp(-1. * steps_done / EPS_DECAY)
                 epsilons.append(cep)
@@ -318,38 +325,54 @@ if __name__ == '__main__':
         print(f"    - Eps     : {cep}")
 
         if (i_episode + 1) % 50 == 0: 
-            try: 
-                # Plot and save (can't display it) 
-                episode_plot(episode_durations, 'episode')
-                plt.gcf().savefig(save_loc / 'DurationPlot.png')
-                episode_plot(average_rewards, 'reward')
-                plt.gcf().savefig(save_loc / 'RewardPlot.png')
-                episode_plot(target_hit, 'target hit')
-                plt.gcf().savefig(save_loc / 'TargetHits.png')
-                episode_plot(epsilons, 'epsilon')
-                plt.gcf().savefig(save_loc / 'EpsilonPlot.png')
-            except Exception as e: 
-                print('ERROR: Could not show plots: ') 
-                print(e)
+            if use_plots: 
+                try: 
+                    # Plot and save (can't display it) 
+                    episode_plot(episode_durations, 'episode')
+                    plt.gcf().savefig(save_loc / 'DurationPlot.png')
+                    episode_plot(average_rewards, 'reward')
+                    plt.gcf().savefig(save_loc / 'RewardPlot.png')
+                    episode_plot(target_hit, 'target hit')
+                    plt.gcf().savefig(save_loc / 'TargetHits.png')
+                    episode_plot(epsilons, 'epsilon')
+                    plt.gcf().savefig(save_loc / 'EpsilonPlot.png')
+                except Exception as e: 
+                    print('ERROR: Could not show plots: ') 
+                    print(e)
+            else: 
+                torch.save(
+                    {
+                        'durations': episode_durations, 
+                        'rewards': average_rewards, 
+                        'impacts': target_hit, 
+                        'epsilon': epsilons 
+                    }, 
+                    save_loc / 'ModelStats', 
+                )
     
-    episode_plot(episode_durations, 'episode')
-    plt.gcf().savefig(save_loc / 'DurationPlot.png')
-    episode_plot(average_rewards, 'reward')
-    plt.gcf().savefig(save_loc / 'RewardPlot.png')
-    episode_plot(target_hit, 'target hit')
-    plt.gcf().savefig(save_loc / 'TargetHits.png')
-    episode_plot(epsilons, 'epsilon')
-    plt.gcf().savefig(save_loc / 'EpsilonPlot.png')
 
     # Save the model 
     torch.save(target_net_state_dict, save_loc / 'ModelWeights.wts')
     torch.save(target_net, save_loc / 'ModelTorch.pkl')
+
+    # Plot and save training stats 
+    if use_plots: 
+        episode_plot(episode_durations, 'episode')
+        plt.gcf().savefig(save_loc / 'DurationPlot.png')
+        episode_plot(average_rewards, 'reward')
+        plt.gcf().savefig(save_loc / 'RewardPlot.png')
+        episode_plot(target_hit, 'target hit')
+        plt.gcf().savefig(save_loc / 'TargetHits.png')
+        episode_plot(epsilons, 'epsilon')
+        plt.gcf().savefig(save_loc / 'EpsilonPlot.png')
 
     # Save the training stats (just episode duration for now, should figure out better loss plots like reward and such)
     torch.save(
         {
             'durations': episode_durations, 
             'rewards': average_rewards, 
+            'impacts': target_hit, 
+            'epsilon': epsilons 
         }, 
         save_loc / 'ModelStats', 
     )
