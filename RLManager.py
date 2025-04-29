@@ -9,6 +9,7 @@ from itertools import count
 from collections import namedtuple, deque 
 import random 
 from pathlib import Path 
+import numpy as np
 
 print("Torch imports...")
 import torch
@@ -51,6 +52,7 @@ class DQN(nn.Module):
         self.layer1 = nn.Linear(n_observations, 128)
         self.layer2 = nn.Linear(128, 128)
         self.layer3 = nn.Linear(128, n_actions)
+        self.softmax = nn.Softmax(dim=1)
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
@@ -58,6 +60,22 @@ class DQN(nn.Module):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         return self.layer3(x)
+
+class DQN_RNN(nn.Module): 
+
+    def __init__(self, n_observations, n_actions):
+        super(DQN_RNN, self).__init__()
+        self.rnn1 = nn.RNN(n_observations, 128)
+        self.rnn2 = nn.RNN(128, 128)
+        self.dense = nn.Linear(128, n_actions)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x): 
+        output1, hidden1 = self.rnn1(x)
+        output2, hidden2 = self.rnn2(hidden1)
+        action = self.dense(hidden2)
+        action = self.softmax(action)
+        return action 
     
 def select_action(state):
     """
@@ -106,6 +124,7 @@ def episode_plot(data, ylbl, show_result=False):
     plt.xlabel('Episode')
     plt.ylabel(ylbl)
     plt.plot(pdata.numpy())
+    plt.grid()
     # Take 100 episode averages and plot them too
     if len(pdata) >= 100:
         means = pdata.unfold(0, 100, 1).mean(1).view(-1)
@@ -128,13 +147,18 @@ def optimize_model():
 
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
-    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                          batch.next_state)), device=device, dtype=torch.bool)
-    non_final_next_states = torch.cat([s for s in batch.next_state
-                                                if s is not None])
-    state_batch = torch.cat(batch.state)
-    action_batch = torch.cat(batch.action)
-    reward_batch = torch.cat(batch.reward)
+    try: 
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                            batch.next_state)), device=device, dtype=torch.bool)
+        non_final_next_states = torch.cat([s for s in batch.next_state
+                                                    if s is not None])
+        state_batch = torch.cat(batch.state)
+        action_batch = torch.cat(batch.action)
+        reward_batch = torch.cat(batch.reward)
+    except RuntimeError as e: 
+        print("FAILED UPDATE: SKIPPING...")
+        print(e)
+        return 
 
     # Compute Q(s_t, a) - the model computes Q(s_t), then we select the
     # columns of actions taken. These are the actions which would've been taken
@@ -182,12 +206,20 @@ print(f"Device: {device}")
 # env = gym.make("GymV21Environment-v0")
 env = MissileEnv()
 
+# BATCH_SIZE is the number of transitions sampled from the replay buffer
+# GAMMA is the discount factor as mentioned in the previous section
+# EPS_START is the starting value of epsilon
+# EPS_END is the final value of epsilon
+# EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
+# TAU is the update rate of the target network
+# LR is the learning rate of the ``AdamW`` optimizer
+
 # Training parameters 
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 GAMMA = 0.99
 EPS_START = 0.9
 EPS_END = 0.05
-EPS_DECAY = 1000
+EPS_DECAY = 10000
 TAU = 0.005
 LR = 1e-4
 
@@ -204,7 +236,7 @@ n_observations = 5
 
 # Change steps based on hardware acceleration?
 if torch.cuda.is_available() or torch.backends.mps.is_available():
-    num_episodes = 1000
+    num_episodes = 800
 else:
     num_episodes = 50
 
@@ -213,8 +245,9 @@ if __name__ == '__main__':
 
     # Set up policies 
     print("Setting up policies...")
-    policy_net = DQN(n_observations, n_actions).to(device)
-    target_net = DQN(n_observations, n_actions).to(device)
+    model_class = DQN
+    policy_net = model_class(n_observations, n_actions).to(device)
+    target_net = model_class(n_observations, n_actions).to(device)
     target_net.load_state_dict(policy_net.state_dict())
 
     # Set up the optimizer and memory (store output from env for training) 
@@ -226,6 +259,8 @@ if __name__ == '__main__':
     steps_done = 0
     episode_durations = []
     average_rewards = []
+    epsilons = []
+    target_hit = []
 
     print("Beginning training loop...")
     for i_episode in range(num_episodes):
@@ -246,6 +281,7 @@ if __name__ == '__main__':
 
             if terminated:
                 next_state = None
+                print("    - Hit the Target!")
             else:
                 next_state = torch.tensor(observation, dtype=torch.float32, device=device).unsqueeze(0)
 
@@ -268,19 +304,42 @@ if __name__ == '__main__':
 
             if done:
                 episode_durations.append(t + 1)
-                average_rewards.append(reward_total / t + 1)
+                average_rewards.append(reward_total.cpu().numpy()[0] / t + 1)
+                cep = eps_threshold = EPS_END + (EPS_START - EPS_END) * \
+                    math.exp(-1. * steps_done / EPS_DECAY)
+                epsilons.append(cep)
+                target_hit.append(terminated)
                 # plot_durations()
                 break
 
-    # Attempt to plot (doesn't work with WSL, raises non-fatal error)
-    # plot_durations(show_result=True)
+        # Try and print out rewards 
+        print(f"    - Duration: {episode_durations[-1]}")
+        print(f"    - Reward  : {average_rewards[-1]}")
+        print(f"    - Eps     : {cep}")
+
+        if (i_episode + 1) % 50 == 0: 
+            try: 
+                # Plot and save (can't display it) 
+                episode_plot(episode_durations, 'episode')
+                plt.gcf().savefig(save_loc / 'DurationPlot.png')
+                episode_plot(average_rewards, 'reward')
+                plt.gcf().savefig(save_loc / 'RewardPlot.png')
+                episode_plot(target_hit, 'target hit')
+                plt.gcf().savefig(save_loc / 'TargetHits.png')
+                episode_plot(epsilons, 'epsilon')
+                plt.gcf().savefig(save_loc / 'EpsilonPlot.png')
+            except Exception as e: 
+                print('ERROR: Could not show plots: ') 
+                print(e)
+    
     episode_plot(episode_durations, 'episode')
     plt.gcf().savefig(save_loc / 'DurationPlot.png')
-    # plot_rewards(show_results=True)
     episode_plot(average_rewards, 'reward')
     plt.gcf().savefig(save_loc / 'RewardPlot.png')
-    # plt.ioff()
-    # plt.show()
+    episode_plot(target_hit, 'target hit')
+    plt.gcf().savefig(save_loc / 'TargetHits.png')
+    episode_plot(epsilons, 'epsilon')
+    plt.gcf().savefig(save_loc / 'EpsilonPlot.png')
 
     # Save the model 
     torch.save(target_net_state_dict, save_loc / 'ModelWeights.wts')

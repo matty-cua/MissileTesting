@@ -20,7 +20,7 @@ class MissileEnv(gym.Env):
         # Important behavior vars 
         self.move_target = False
         self.GP = PathGenerator()
-        self.training_length_frames = 5*30
+        self.training_length_frames = 3*30
 
         # Gym built in vars 
         self.action_size = 5
@@ -78,6 +78,11 @@ class MissileEnv(gym.Env):
         self.missile.velocity = Tools.random_unit() * self.missile.speed 
         self.missile.reset()
 
+        # Reset again if missile starts too close to target 
+        if Vector.distance(self.missile.position, self.target.position) < 2*self.target_size:
+            return self.reset(seed, options)
+
+        # Return observation and info 
         return self.get_obs(), self.get_info()
 
     def step(self, action=None): 
@@ -109,7 +114,8 @@ class MissileEnv(gym.Env):
             reward = 10; 
             terminated = True; 
         else: 
-            reward = obs[2]; 
+            reward = -3 * (obs[3]**2);  
+            # reward = -1 
 
         # check for truncation 
         self.frames += 1; 
