@@ -20,7 +20,7 @@ class MissileEnv(gym.Env):
         # Important behavior vars 
         self.move_target = True
         self.GP = PathGenerator()
-        self.training_length_frames = 3*30
+        self.training_length_frames = 5*30
 
         # Gym built in vars 
         self.action_size = 5
@@ -110,11 +110,12 @@ class MissileEnv(gym.Env):
         obs = self.get_obs()
 
         # Check for finishing clause and calc reward 
-        if Vector.distance(self.missile.position, self.target.position) < self.target_size: 
+        if Vector.distance(self.missile.position, self.target.position) < 2.5*self.target_size: 
             reward = 10; 
             terminated = True; 
         else: 
-            reward = .05 * (obs[2] - .5*np.abs(obs[3]))
+            # reward = .05 * (obs[2] - (.5*np.abs(obs[3])))
+            reward = (-3/self.training_length_frames) *  (obs[-1] + np.abs(obs[1]))
             # reward = -1 
 
         # check for truncation 

@@ -19,7 +19,7 @@ class Missile:
         # behaviors 
         self.speed = 300; 
         self.turn_speed = 1 * math.pi  # rads/second
-        self.clip_distance = 200  # clip dd vector to be unit vector outside of this distance 
+        self.clip_distance = 300  # clip dd vector to be unit vector outside of this distance 
 
     def reset(self): 
         # Should reset the model here (if it is stateful)
@@ -99,18 +99,18 @@ class Missile:
         if angle < -180:  # Fix lower bounds
             angle = 360 + angle
 
-        # v_inline = Vector.projection(dv, dd)  # Velocity towards the target 
-        # v_offline = np.float64(Vector.off_axis(dv, dd) * math.copysign(1, angle))  # Velocity away from the target 
-        # v_proj = Vector(v_inline, v_offline).unit()  # velocity normalized to the target 
-
-        v_inline = Vector.projection(dv, self.velocity)  # Velocity towards the target 
-        v_offline = np.float64(Vector.off_axis(dv, self.velocity) * math.copysign(1, angle))  # Velocity away from the target 
+        v_inline = Vector.projection(dv, dd)  # Velocity towards the target 
+        v_offline = np.float64(Vector.off_axis(dv, dd) * math.copysign(1, angle))  # Velocity away from the target 
         v_proj = Vector(v_inline, v_offline).unit()  # velocity normalized to the target 
+
+        # v_inline = Vector.projection(dv, self.velocity)  # Velocity towards the target 
+        # v_offline = np.float64(Vector.off_axis(dv, self.velocity) * math.copysign(1, angle))  # Velocity away from the target 
+        # v_proj = Vector(v_inline, v_offline).unit()  # velocity normalized to the target 
 
         # Get distance relative to velocity (the nose) 
         d_inline = Vector.projection(dd, self.velocity)
         d_offline = np.float64(Vector.off_axis(dd, self.velocity) * math.copysign(1, angle))
-        d_proj = Vector(d_inline, d_offline)
+        d_proj = Vector(d_inline, d_offline).unit()
         d_mag = dd.magnitude()
 
         return np.array([d_proj.x, d_proj.y, v_proj.x, v_proj.y, d_mag])    

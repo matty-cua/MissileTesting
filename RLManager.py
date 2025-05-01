@@ -102,6 +102,11 @@ def select_action(state):
     else:
         return torch.tensor([[env.action_space.sample()]], device=device, dtype=torch.long)
     
+def movmean(data, Nmean=50): 
+    flat = np.ones(data.shape)
+    avg_filt = np.ones(Nmean) / Nmean
+    edge_destroyer = 1 / np.convolve(flat, avg_filt, 'same')
+    return np.convolve(data, avg_filt, 'same') * edge_destroyer
 
 def plot_durations(show_result=False):
     plt.figure(1)
@@ -121,22 +126,27 @@ def plot_durations(show_result=False):
         plt.plot(means.numpy())
 
 def episode_plot(data, ylbl, show_result=False):
-    plt.figure(1)
+    Nmean = 50
+    plt.figure(1)   
     pdata = torch.tensor(data, dtype=torch.float)
-    if show_result:
-        plt.title('Result')
-    else:
-        plt.clf()
-        plt.title('Training...')
+    # if show_result:
+    #     plt.title('Result')
+    # else:
+    #     plt.clf()
+    #     plt.title('Training...')
+    plt.title(ylbl)
     plt.xlabel('Episode')
     plt.ylabel(ylbl)
     plt.plot(pdata.numpy())
+    plt.plot(movmean(pdata.numpy()))
+    # plt.plot(np.convolve(pdata.numpy(), np.ones(Nmean)/Nmean, 'same'))
+
     plt.grid()
-    # Take 100 episode averages and plot them too
-    if len(pdata) >= 100:
-        means = pdata.unfold(0, 100, 1).mean(1).view(-1)
-        means = torch.cat((torch.zeros(99), means))
-        plt.plot(means.numpy())
+    # # Take 100 episode averages and plot them too
+    # if len(pdata) >= 100:
+    #     means = pdata.unfold(0, 100, 1).mean(1).view(-1)
+    #     means = torch.cat((torch.zeros(99), means))
+    #     plt.plot(means.numpy())
 
 
 def optimize_model():
@@ -220,15 +230,17 @@ env = MissileEnv()
 # EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay
 # TAU is the update rate of the target network
 # LR is the learning rate of the ``AdamW`` optimizer
+# SAVE_EVERY is how often to model checkpoint (based on # impacts) 
 
 # Training parameters 
 BATCH_SIZE = 64
-GAMMA = 0.99
-EPS_START = 0.9
+GAMMA = 0.99        
+EPS_START = 0.8
 EPS_END = 0.05
-EPS_DECAY = 10000
-TAU = 0.005
+EPS_DECAY = 50000
+TAU = 0.05  # Started at 0.005
 LR = 1e-4
+SAVE_EVERY = 15
 
 # Set up save path 
 save_loc = Path('Output')
@@ -243,7 +255,7 @@ n_observations = 5
 
 # Change steps based on hardware acceleration?
 if torch.cuda.is_available() or torch.backends.mps.is_available():
-    num_episodes = 800
+    num_episodes = 1600
 else:
     num_episodes = 800
 
@@ -263,6 +275,10 @@ if __name__ == '__main__':
     memory = ReplayMemory(10000)
 
     # training step counter + episode duration counter
+    save_step = 0
+    point_step = 0
+    save_points = np.zeros(2*SAVE_EVERY)
+    check_ref = 0
     steps_done = 0
     episode_durations = []
     average_rewards = []
@@ -324,6 +340,22 @@ if __name__ == '__main__':
         print(f"    - Reward  : {average_rewards[-1]}")
         print(f"    - Eps     : {cep}")
 
+        # Checkpointing 
+        if point_step >= len(save_points): 
+            point_step = 0
+        save_points[point_step] = terminated
+        point_step += 1
+        if save_step >= SAVE_EVERY: 
+            save_step = 0
+            if np.mean(point_step) > check_ref: 
+                check_ref = np.mean(point_step)
+                torch.save(policy_net_state_dict, save_loc / 'CheckpointWeights.wts')
+                print("======== MODEL CHECKPOINT =======")
+        else: 
+            save_step += 1
+                
+
+        # Intermediate plots
         if (i_episode + 1) % 50 == 0: 
             if use_plots: 
                 try: 
@@ -339,16 +371,16 @@ if __name__ == '__main__':
                 except Exception as e: 
                     print('ERROR: Could not show plots: ') 
                     print(e)
-            else: 
-                torch.save(
-                    {
-                        'durations': episode_durations, 
-                        'rewards': average_rewards, 
-                        'impacts': target_hit, 
-                        'epsilon': epsilons 
-                    }, 
-                    save_loc / 'ModelStats', 
-                )
+            # Intermediate stats 
+            torch.save(
+                {
+                    'durations': episode_durations, 
+                    'rewards': average_rewards, 
+                    'impacts': target_hit, 
+                    'epsilon': epsilons 
+                }, 
+                save_loc / 'ModelStats', 
+            )
     
 
     # Save the model 
