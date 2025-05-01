@@ -58,7 +58,7 @@ class MissileEnv(gym.Env):
         # input management 
         self.quit = False 
         self.running = False 
-        self.key_names = {
+        self.key_names = {  
             'up': K_UP, 
             'down': K_DOWN, 
             'right': K_RIGHT, 
