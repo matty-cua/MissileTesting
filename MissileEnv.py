@@ -2,6 +2,7 @@ import numpy as np
 
 import gymnasium as gym
 import pygame
+from pygame.locals import * 
 
 import random 
 from dataclasses import dataclass 
@@ -28,12 +29,13 @@ class MissileEnv(gym.Env):
 
         # Gen variables 
         self.dt = 1/30;  # Frame rate 
-        self.bound_size = 100; 
+        self.bound_size = 200; 
         self.training = True; 
         self.frames = 0; 
 
         # Target variables 
         self.target = Target() 
+        self.target_speed = 150
 
         # Missile variables 
         self.missile = Missile()
@@ -42,7 +44,7 @@ class MissileEnv(gym.Env):
         # Manage pygame 
         self.follow_missile = True  # Center rocket on the frame (instead of (0, 0))
         self.rendered = False  # if we have initiaized the pygame window 
-        self.running = False  # Unsure if this is necessary either, most likely pauses things? 
+        self.running_pg = False  # Unsure if this is necessary either, most likely pauses things? 
         self.window_size = (400, 400) 
         self.render_mode = None 
 
@@ -52,6 +54,20 @@ class MissileEnv(gym.Env):
         self.missile_width = 4
         self.missile_size = 20
         self.target_size = 10 
+
+        # input management 
+        self.quit = False 
+        self.running = False 
+        self.key_names = {
+            'up': K_UP, 
+            'down': K_DOWN, 
+            'right': K_RIGHT, 
+            'left': K_LEFT, 
+            'reset': K_r, 
+        }
+        self.key_mapping = {v: k for k, v in self.key_names.items()}
+        self.keys = list(self.key_names.values())
+        self.player_inputs = {v: False for v in self.key_names.values()}
 
     def reset(self, seed=None, options=None): 
         # super stuff 
@@ -64,7 +80,7 @@ class MissileEnv(gym.Env):
         self.frames = 0
 
         # Random target position, zero velocity
-        if not self.move_target:  
+        if not self.move_target or self.render_mode == 'player':  
             self.target.velocity = Vector(0, 0)
             self.target.position = Tools.random_unit() * self.bound_size
         else: 
@@ -78,11 +94,17 @@ class MissileEnv(gym.Env):
         self.missile.velocity = Tools.random_unit() * self.missile.speed 
         self.missile.reset()
 
-        # Reset again if missile starts too close to target 
-        if Vector.distance(self.missile.position, self.target.position) < 2*self.target_size:
+        # Reset again if missile starts too close to target (recursively) 
+        if Vector.distance(self.missile.position, self.target.position) < 4*self.target_size:
             return self.reset(seed, options)
+        
+        # Render if in player mode (need to initialize pygame before getting events) 
+        if self.render_mode == 'player': 
+            self.action = 0  # need this to render the model input bar at the bottom 
+            self.render()
 
         # Return observation and info 
+        self.running = True 
         return self.get_obs(), self.get_info()
 
     def step(self, action=None): 
@@ -91,7 +113,40 @@ class MissileEnv(gym.Env):
         truncated = False 
 
         # update target kinematics 
-        if self.move_target: 
+        if self.render_mode == 'player': 
+            # Grab inputs 
+            for event in pygame.event.get(): 
+                if event.type == pygame.QUIT: 
+                    pygame.quit()
+                    raise SystemExit("Goodbye!")
+                if event.type == pygame.KEYDOWN: 
+                    if event.key in self.keys: 
+                        self.player_inputs[event.key] = True 
+                if event.type == pygame.KEYUP: 
+                    if event.key in self.keys: 
+                        self.player_inputs[event.key] = False 
+
+            # Update target kinematics 
+            if self.running: 
+                move_vector = Vector(0, 0)
+                if self.player_inputs[self.key_names['right']]: 
+                    move_vector += Vector(1, 0) 
+                if self.player_inputs[self.key_names['left']]: 
+                    move_vector += Vector(-1, 0)
+                if self.player_inputs[self.key_names['up']]: 
+                    move_vector += Vector(0, -1)
+                if self.player_inputs[self.key_names['down']]: 
+                    move_vector += Vector(0, 1)
+                self.target.position += move_vector.unit() * self.dt * self.target_speed 
+
+            # Manage reset 
+            if self.player_inputs[self.key_names['reset']]: 
+                # return obersvations, no reward, not terminated, not truncated, info (empty dict)
+                self.reset()
+                return self.get_obs(), 0, False, False, self.get_info()
+
+
+        elif self.move_target: 
             self.target_i += 1
             if self.target_i >= len(self.target_x): 
                 self.target_i = 0
@@ -101,32 +156,36 @@ class MissileEnv(gym.Env):
             self.target.position = nv 
 
         # Update the missile 
-        da = (self.action_size-1)/2
-        act_in = (action-da)/da 
-        self.missile.update(self.dt, self.target, action=act_in)
-        self.action = act_in
+        if self.running: 
+            da = (self.action_size-1)/2
+            act_in = (action-da)/da 
+            self.missile.update(self.dt, self.target, action=act_in)
+            self.action = act_in
 
         # get observations 
         obs = self.get_obs()
 
         # Check for finishing clause and calc reward 
         if Vector.distance(self.missile.position, self.target.position) < 2.5*self.target_size: 
-            reward = 10; 
+            reward = 1; 
             terminated = True; 
+            self.running = False 
         else: 
             # reward = .05 * (obs[2] - (.5*np.abs(obs[3])))
-            reward = (-3/self.training_length_frames) *  (obs[-1] + np.abs(obs[1]))
+            reward = (-.2/self.training_length_frames) *  (obs[-1] + np.abs(obs[1]))
             # reward = -1 
 
         # check for truncation 
-        self.frames += 1; 
-        if self.frames > self.training_length_frames: 
-            truncated = True
+        if not self.render_mode == 'player': 
+            self.frames += 1; 
+            if self.frames > self.training_length_frames: 
+                truncated = True
+                self.running = False 
 
         # Manage pygame 
-        if self.render_mode == "human": 
+        if self.render_mode in ["human", 'player']: 
             self.render()
-            print(f"env action: {self.action}")
+            # print(f"env action: {self.action}")
 
         # return the goods 
         return obs, reward, terminated, truncated, self.get_info()
@@ -137,13 +196,13 @@ class MissileEnv(gym.Env):
             pygame.init()
             self.window = pygame.display.set_mode(self.window_size)
             self.clock = pygame.time.Clock()
-            self.running = True  # Unsure if we really need it 
+            self.running_pg = True  # Unsure if we really need it 
 
 
             # Report that we are initialized 
             self.rendered = True 
         
-        if self.running and pg: 
+        if self.running_pg and pg: 
             # Set up the canvas (for rgb rendering as well)
             canvas = pygame.Surface(self.window_size)
             canvas.fill((255, 255, 255)) 
@@ -176,7 +235,7 @@ class MissileEnv(gym.Env):
             pygame.draw.line(canvas, 'black', (xcent, yws-5), (xcent, yws-15), lw)
             pygame.draw.line(canvas, 'red', (xcent, self.window_size[1]-10), (xcent + xrange*self.action, self.window_size[1]-10), lw)
 
-            if self.render_mode == "human": 
+            if self.render_mode in ["human", 'player']: 
                 self.window.blit(canvas, canvas.get_rect())  # draw the canvas to the window 
                 pygame.event.pump()  # Manage the event queue(?) might help with not handling inputs 
                 pygame.display.update()  # Update the window 

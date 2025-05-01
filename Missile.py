@@ -21,6 +21,9 @@ class Missile:
         self.turn_speed = 1 * math.pi  # rads/second
         self.clip_distance = 300  # clip dd vector to be unit vector outside of this distance 
 
+        # Flags 
+        self.running = True 
+
     def reset(self): 
         # Should reset the model here (if it is stateful)
         ... 
@@ -30,17 +33,18 @@ class Missile:
         # self.velocity = Tools.random_unit * self.speed
 
     def update(self, dt, target, action=None, reward=None): 
-        # Turning 
-        if action is None: 
-            self.turn_towards(target, dt)
-        else: 
-            self.velocity = self.velocity.rotate(action * dt * self.turn_speed)
+        if self.running: 
+            # Turning 
+            if action is None: 
+                self.turn_towards(target, dt)
+            else: 
+                self.velocity = self.velocity.rotate(action * dt * self.turn_speed)
 
-        # Kinematics 
-        self.position += self.velocity * dt
+            # Kinematics 
+            self.position += self.velocity * dt
 
-        if reward is not None: 
-            self.backprop(reward)
+            if reward is not None: 
+                self.backprop(reward)
 
     def turn_towards(self, target, dt): 
         # Get distance inputs 

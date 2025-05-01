@@ -98,7 +98,11 @@ class Vector:
         return math.sqrt(self.x**2 + self.y**2)
 
     def unit(self): 
-        return self / self.magnitude()
+        mg = self.magnitude()
+        if mg == 0: 
+            return Vector(0, 0)
+        else: 
+            return self / mg
     
     # Statics 
     @staticmethod
@@ -133,6 +137,10 @@ class Vector:
     def to_axis(a, b): 
         bu = b.unit()  # unit vector of the direction 
         inline = projection()
+
+    @staticmethod
+    def from_angle(a): 
+        return Vector(math.cos(a), math.sin(a))
 
 
 
