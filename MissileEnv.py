@@ -270,6 +270,10 @@ class MissileEnv(gym.Env):
             return Tools.get_cam_pos(self.window_size, p-self.missile.position).as_tuple()
         else: 
             return Tools.get_cam_pos(self.window_size, p).as_tuple()
+        
+    def add_frame(self): 
+        if self.save_gif: 
+            ... 
 
 @dataclass 
 class Target: 
