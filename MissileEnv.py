@@ -1,11 +1,12 @@
 import numpy as np 
+from PIL import Image 
 
 import gymnasium as gym
 import pygame
 from pygame.locals import * 
 
 import random 
-from dataclasses import dataclass 
+from dataclasses import dataclass
 
 from Tools import * 
 from Missile import Missile
@@ -40,6 +41,10 @@ class MissileEnv(gym.Env):
         # Missile variables 
         self.missile = Missile()
         self.action = None
+
+        # Saving output 
+        self.create_gif = False
+        self.image_frames = [] 
 
         # Manage pygame 
         self.follow_missile = True  # Center rocket on the frame (instead of (0, 0))
@@ -145,7 +150,7 @@ class MissileEnv(gym.Env):
                 self.reset()
                 return self.get_obs(), 0, False, False, self.get_info()
 
-
+        # Moving the target along a predefined path 
         elif self.move_target: 
             self.target_i += 1
             if self.target_i >= len(self.target_x): 
@@ -183,7 +188,7 @@ class MissileEnv(gym.Env):
                 self.running = False 
 
         # Manage pygame 
-        if self.render_mode in ["human", 'player']: 
+        if self.render_mode in ["human", 'player'] or self.create_gif: 
             self.render()
             # print(f"env action: {self.action}")
 
@@ -235,6 +240,11 @@ class MissileEnv(gym.Env):
             pygame.draw.line(canvas, 'black', (xcent, yws-5), (xcent, yws-15), lw)
             pygame.draw.line(canvas, 'red', (xcent, self.window_size[1]-10), (xcent + xrange*self.action, self.window_size[1]-10), lw)
 
+            # Save frame 
+            if self.create_gif: 
+                self.add_frame(canvas)
+
+
             if self.render_mode in ["human", 'player']: 
                 self.window.blit(canvas, canvas.get_rect())  # draw the canvas to the window 
                 pygame.event.pump()  # Manage the event queue(?) might help with not handling inputs 
@@ -271,9 +281,21 @@ class MissileEnv(gym.Env):
         else: 
             return Tools.get_cam_pos(self.window_size, p).as_tuple()
         
-    def add_frame(self): 
-        if self.save_gif: 
-            ... 
+    def add_frame(self, canvas): 
+        frame = pygame.surfarray.array3d(canvas)
+        frame = np.moveaxis(frame, 0, 1)
+        array = Image.fromarray(frame)
+        self.image_frames.append(array)
+
+    def save_episode(self, save_path): 
+        self.image_frames[0].save(
+            save_path,
+            save_all=True,
+            optimize=False,
+            append_images=self.image_frames[1:],
+            loop=0,
+            duration=int(len(self.image_frames) * self.dt),
+        )
 
 @dataclass 
 class Target: 

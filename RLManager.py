@@ -349,7 +349,7 @@ if __name__ == '__main__':
             save_step = 0
             if np.mean(point_step) > check_ref: 
                 check_ref = np.mean(point_step)
-                torch.save(policy_net_state_dict, save_loc / 'CheckpointWeights.wts')
+                torch.save(target_net_state_dict, save_loc / 'CheckpointWeights.wts')
                 print("======== MODEL CHECKPOINT =======")
         else: 
             save_step += 1
