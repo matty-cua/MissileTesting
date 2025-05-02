@@ -36,10 +36,11 @@ class InteractiveEnv(MissileEnv):
         self.lives = 3 
         self.add_time = 3
         self.terminate = False 
+        self.destroy_missiles = True 
         self.play_time = 0 
         self.curr_time = 0
         self.font = pygame.font.SysFont('Freesandsbold.tff', 32)
-        Debug.enable_log = False  # hide debugging output from console 
+        Debug.enable_log = True  # hide debugging output from console 
         
          # Define the model path 
         save_loc = Path('GameModel')
@@ -155,6 +156,7 @@ class InteractiveEnv(MissileEnv):
                     I = [i for i, x in sorted(enumerate(d_list))][0]
                     self.missiles.pop(I)
 
+                to_destroy = []
                 for i, m in enumerate(self.missiles): 
                     state = torch.tensor(m.get_obs(self.target, self.dt), dtype=torch.float32, device=device).unsqueeze(0)
                     action = self.model(state).max(1).indices.view(1, 1)
@@ -170,8 +172,22 @@ class InteractiveEnv(MissileEnv):
                     if Vector.distance(m.position, self.target.position) < 2.5*self.target_size: 
                         self.lives -= 1
                         self.num_missiles -= 1
-                        self.missiles.pop(i)
+                        to_destroy.append(i)
+                        continue 
                         # self.missiles[i] = self.create_missile()
+
+                # Check for collision with other missiles 
+                if self.destroy_missiles: 
+                    for i, m in enumerate(self.missiles): 
+                        dv = [Vector.distance(m.position, mo.position) for mo in self.missiles]
+                        dv.pop(i)  # get rid of distance from self in the list 
+                        if any(np.array(dv) < self.target_size): 
+                            to_destroy.append(i) 
+
+                # Manage destroying the missiles 
+                [self.missiles.pop(_) for _ in to_destroy[::-1]]
+                self.num_missiles = len(self.missiles)
+
 
 
             # Manage gamey side 
