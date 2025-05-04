@@ -40,7 +40,7 @@ class InteractiveEnv(MissileEnv):
         self.play_time = 0 
         self.curr_time = 0
         self.font = pygame.font.SysFont('Freesandsbold.tff', 32)
-        Debug.enable_log = True  # hide debugging output from console 
+        Debug.enable_log = False  # hide debugging output from console 
         
          # Define the model path 
         save_loc = Path('GameModel')
@@ -275,21 +275,21 @@ env.clock = pygame.time.Clock()
 env.running_pg = True  # Unsure if we really need it 
 
 # Load the model 
-save_loc = Path('Output')
+# save_loc = Path('Output')
 # save_loc = Path("Archive") / "Missile_08_1600e_dist_loss"
 
-model = torch.load(save_loc / 'ModelTorch.pkl', weights_only=False)  # Needs access to DQN class \
+# model = torch.load(save_loc / 'ModelTorch.pkl', weights_only=False)  # Needs access to DQN class \
 
-# Try reloading the best checkpoint 
-use_checkpoint = True
-if use_checkpoint: 
-    try: 
-        weights = torch.load(save_loc / 'CheckpointWeights.wts', weights_only=True)
-        model.load_state_dict(weights)
-        print("Successfully loaded checkpoint.") 
-    except Exception as e: 
-        print("Loading weights failed: ") 
-        print(e)
+# # Try reloading the best checkpoint 
+# use_checkpoint = True
+# if use_checkpoint: 
+#     try: 
+#         weights = torch.load(save_loc / 'CheckpointWeights.wts', weights_only=True)
+#         model.load_state_dict(weights)
+#         print("Successfully loaded checkpoint.") 
+#     except Exception as e: 
+#         print("Loading weights failed: ") 
+#         print(e)
 
 # Run the environment 
 env.reset() 
