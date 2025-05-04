@@ -7,12 +7,16 @@ Reinforcement learning experiment for making a target seeking missile.
 To run in interactive mode: $ python Interactive.py  
 
 ---
-To train a model: $ python RLManager.py 
+To train a model in a notebook: ModelTraining.ipynb 
+To train a model in a temrinal: $ python RLManager.py 
 * You can tune the hyper parameters after all of the function definitions
 
 ---
+To examine a test episode from a trained model, use the notebook EpisodeExploration.ipynb to load the model, generate and render an episode, and plot summaries of inputs and outputs 
+
+---
 To adjust the reward function, go into MissileEnv.py
-* The reward is calculated in the step function
+* The reward is calculated in the method 'step' in the RLManager class 
 
 ---
 Model inputs are a tensor formatted as: 
